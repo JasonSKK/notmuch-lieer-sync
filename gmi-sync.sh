@@ -4,4 +4,4 @@
 #gmi pushes and pulls new emails
 #popd to previous dir
 #notmuch new: Find and import new messages to the notmuch database.
-pushd /Users/jsk/Mail/account.gmail ; gmi sync ; popd ; notmuch new
+pushd $1 ; gmi sync ; popd ; notmuch new

@@ -5,8 +5,7 @@ This repository provides a setup configuration for effortless syncing between no
 It nerved me a lot that every time I wanted to fetch new email using lieer I had to leave emacs (I do not use shell within emacs) and then run "gmi sync".  So, I wrote a script so that I could execute it within emacs.
 
 1. First, place the /gmi_sync.sh/ script in the "mail" dir that you use.  In my case that would be /"~/Mail"/.
-2. Edit mail config path within /gmi_sync.sh/ script according to your setup.
-3. In the following function, set the correct path for the script and place it in your emacs configuration (I use prelude so that would be "~/.emacs.d./personal")
+2. In the following function, set the correct path for the script and mail config path according to your setup. Then place  the elisp code it in your emacs configuration (I use prelude so that would be somewhere inside "~/.emacs.d./personal")
 #+BEGIN_SRC
 ;; shell command output no window
 (defun no-output-shell-run (command)
@@ -18,10 +17,10 @@ It nerved me a lot that every time I wanted to fetch new email using lieer I had
   "Syncs notmuch using lieer.  ARG empty: Configuration file is /Users/+++/Mail/gmi-sync.sh."
   (interactive)
   (let ((lnr (line-number-at-pos))) ;; register cursor line number
-    (no-output-shell-run "bash /Users/+++/Mail/gmi-sync.sh")
-    ;;(shell-command "bash /Users/+++/Mail/gmi-sync.sh") ;; with output in new window
+    (no-output-shell-run "bash /Users/+++/Mail/gmi-sync.sh /Users/+++/Mail")
+    ;;(shell-command "bash /Users/+++/Mail/gmi-sync.sh") ;; new window output
     (notmuch-refresh-all-buffers) ;; refresh all not much buffers
-    (goto-line lnr))) ;; go back to previous line number
+    (goto-line lnr))) ;; go to registered line number
 
 ;; (global-set-key (kbd "C-l s") 'notmuch-sync) ;; global
 ;; mode-specific, notmuch-search-mode
@@ -29,13 +28,13 @@ It nerved me a lot that every time I wanted to fetch new email using lieer I had
           '(lambda ()
              (define-key notmuch-search-mode-map (kbd ".") 'notmuch-sync)))
 #+END_SRC
-4. You can sync by using "." (full stop) when you are in search-mode i.e. "inbox".  It does not work with the notmuch-hello buffer.  However, in my configuration it is bind to "C-l s" so that I can sync without having to open notmuch or be in the notmuch buffer.
+3. You can sync by using "." (full stop) when you are in search-mode i.e. "inbox".  It does not work with the notmuch-hello buffer.  However, in my configuration it is bound to "C-l s" so that I can sync without having to or be in the notmuch buffer.
 
 + Note: If you like you can enable output in new window by commenting out
 #+BEGIN_SRC
-(no-output-shell-run "bash /Users/+++/Mail/gmi-sync.sh")
+(no-output-shell-run "bash /Users/+++/Mail/gmi-sync.sh /Users/+++/Mail")
 #+END_SRC
 and using this instead
 #+BEGIN_SRC
-(shell-command "bash /Users/+++/Mail/gmi-sync.sh") ;; with output in new window
+;;(shell-command "bash /Users/+++/Mail/gmi-sync.sh") ;; new window output
 #+END_SRC
