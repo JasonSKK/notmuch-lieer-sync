@@ -4,8 +4,34 @@ This repository provides a setup configuration for effortless syncing between no
 
 It nerved me a lot that every time I wanted to fetch new email using lieer I had to leave emacs (I do not use shell within emacs) and then run "gmi sync".  So, I wrote this.
 
+* without the script
+1. just fix the path so that points at your "mail" dir in your setup and place the following code in your emacs config (i.e. init file, or whatever your setup is).
+   #+BEGIN_SRC
+;; shell command output no window
+(defun no-output-shell-run (command)
+  "Run shell COMMAND without displaying the output.  First ARG is COMMAND."
+  (interactive (list (read-shell-command "$ ")))
+  (start-process-shell-command command nil command))
+
+;; sync notmuch using lieer and notmuch new -- without the script
+(defun notmuch-sync ()
+  "Syncs notmuch using lieer.  ARG empty: Configuration file is /Users/+++/Mail/gmi-sync.sh."
+  (interactive)
+  (let ((lnr (line-number-at-pos))) ;; register cursor line number
+    (no-output-shell-run "pushd /Users/+++/Mail ; gmi sync ; popd ; notmuch new")
+    ;; "bash /Users/+++/Mail/gmi-sync.sh /Users/+++/Mail") ;; using the script
+    ;;(shell-command "bash /Users/+++/Mail/gmi-sync.sh") ;; run shell script
+    (notmuch-refresh-all-buffers) ;; refresh all not much buffers
+    (goto-line lnr) ;; go to registered line number
+    (message "notmuch & lieer on sync")))
+#+END_SRC
+1. You can sync by using "." (full stop) when you are in search-mode i.e. "inbox".  It does not work with the notmuch-hello buffer.  However, in my configuration it is bound to "C-l s" so that I can sync without having to or be in the notmuch buffer.  You can easily do that by un-commenting
+   #+BEGIN_SRC
+   (global-set-key (kbd "C-l s") 'notmuch-sync)
+   #+END_SRC
+* old version: using a shell script
 1. First, place the /gmi_sync.sh/ script in the "mail" dir that you use.  In my case that would be "~/Mail".
-2. In the following function, set the correct path for the script and mail config path according to your setup. Then place  the elisp code it in your emacs configuration (I use emacs prelude so that would be somewhere inside "~/.emacs.d./personal").  More about prelude here https://prelude.emacsredux.com/en/latest/.
+2. In the following function, set the correct path for the script and mail config path according to your setup. Then place  the elisp code it in your emacs configuration (I use emacs prelude so that would be somewhere inside "~/.emacs.d./personal").  More about prelude here https://prelude.emacsredux.com/en/latest/.  /If you are not copy-pasting and using the .el file in the repo make sure that you un-comment the "sync notmuch using lieer and notmuch new -- old version using a script" block and comment out the newer version./
    #+BEGIN_SRC
 ;; shell command output no window
 (defun no-output-shell-run (command)
@@ -32,7 +58,7 @@ It nerved me a lot that every time I wanted to fetch new email using lieer I had
    #+BEGIN_SRC
    (global-set-key (kbd "C-l s") 'notmuch-sync)
    #+END_SRC
-
+* options
 + Note: If you like you can enable output in new window by commenting out
 #+BEGIN_SRC
 (no-output-shell-run "bash /Users/+++/Mail/gmi-sync.sh /Users/+++/Mail")
