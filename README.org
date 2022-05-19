@@ -1,10 +1,10 @@
 #+TITLE: Easy Notmuch - lieer sync emacs
 
-This repository provides a setup configuration for effortless syncing between notmuch and lieer using a shell script and an elisp function.
+This repository provides a setup configuration for effortless syncing between notmuch and lieer using a simple elisp function (old version uses + script)
 
 It nerved me a lot that every time I wanted to fetch new email using lieer I had to leave emacs (I do not use shell within emacs) and then run "gmi sync".  So, I wrote this.
 
-* without the script
+*  Elisp function
 1. just fix the path so that points at your "mail" dir in your setup and place the following code in your emacs config (i.e. init file, or whatever your setup is).
    #+BEGIN_SRC
 ;; shell command output no window
@@ -29,6 +29,15 @@ It nerved me a lot that every time I wanted to fetch new email using lieer I had
    #+BEGIN_SRC
    (global-set-key (kbd "C-l s") 'notmuch-sync)
    #+END_SRC
+* options
++ Note: If you like you can enable output in new window by commenting out
+#+BEGIN_SRC
+(no-output-shell-run "bash /Users/+++/Mail/gmi-sync.sh /Users/+++/Mail")
+#+END_SRC
+and using this instead
+#+BEGIN_SRC
+;;(shell-command "bash /Users/+++/Mail/gmi-sync.sh") ;; new window output
+#+END_SRC
 * old version: using a shell script
 1. First, place the /gmi_sync.sh/ script in the "mail" dir that you use.  In my case that would be "~/Mail".
 2. In the following function, set the correct path for the script and mail config path according to your setup. Then place  the elisp code it in your emacs configuration (I use emacs prelude so that would be somewhere inside "~/.emacs.d./personal").  More about prelude here https://prelude.emacsredux.com/en/latest/.  /If you are not copy-pasting and using the .el file in the repo make sure that you un-comment the "sync notmuch using lieer and notmuch new -- old version using a script" block and comment out the newer version./
@@ -58,12 +67,3 @@ It nerved me a lot that every time I wanted to fetch new email using lieer I had
    #+BEGIN_SRC
    (global-set-key (kbd "C-l s") 'notmuch-sync)
    #+END_SRC
-* options
-+ Note: If you like you can enable output in new window by commenting out
-#+BEGIN_SRC
-(no-output-shell-run "bash /Users/+++/Mail/gmi-sync.sh /Users/+++/Mail")
-#+END_SRC
-and using this instead
-#+BEGIN_SRC
-;;(shell-command "bash /Users/+++/Mail/gmi-sync.sh") ;; new window output
-#+END_SRC
