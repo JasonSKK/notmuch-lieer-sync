@@ -18,7 +18,7 @@ It nerved me a lot that every time I wanted to fetch new email using lieer I had
 
 #+END_SRC
 2. Set the period variable (e.g. in your init)
-#+BEGIN_SRC
+   #+BEGIN_SRC
 (setq notmuch-sync-period 25) ;; fetch every 25 sec
 #+END_SRC
 3. You can sync by using "." (full stop) when you are in search-mode i.e. "inbox".  It does not work with the notmuch-hello buffer.  However, in my configuration it is bound to "C-l s" so that I can sync without having to or be in the notmuch buffer.  You can easily do that by un-commenting
