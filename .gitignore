@@ -1,2 +1,3 @@
 flycheck_notmuch-sync.elc
 *.elc
+old_script_config/*
