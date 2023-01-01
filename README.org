@@ -5,7 +5,7 @@ This repository provides a setup configuration for effortless syncing between no
 It nerved me a lot that every time I wanted to fetch new email using lieer I had to leave emacs (I do not use shell within emacs) and then run "gmi sync".  So, I wrote this.
 
 *  Elisp function
-1. just fix the path so that points at your "mail" dir in your setup and place the following code in your emacs config (i.e. init file, or whatever your setup is).
+1. just fix the path so that points at your "mail" dir in your setup.  Then, place the notmuch-sync.el file / or just copy the code in your emacs config (i.e. init file, or whatever your setup is).
    #+BEGIN_SRC
   "Syncs notmuch using lieer.  ARG empty: Configuration file is /Users/+++/Mail/gmi-sync.sh."
 ...
@@ -23,10 +23,10 @@ It nerved me a lot that every time I wanted to fetch new email using lieer I had
 #+END_SRC
 3. You can sync by using "." (full stop) when you are in search-mode i.e. "inbox".  It does not work with the notmuch-hello buffer.  However, in my configuration it is bound to "C-l s" so that I can sync without having to or be in the notmuch buffer.  You can easily do that by un-commenting
    #+BEGIN_SRC
-   (global-set-key (kbd "C-l s") 'notmuch-sync)
+;;   (global-set-key (kbd "C-l s") 'notmuch-sync)
    #+END_SRC
 4. I used a hook to automatically fetch email every 25 sec
-   1. To change the period, edit notmuch-sync-period variable
+   1. To change the time period, edit notmuch-sync-period variable
    2. To disable comment out the add-hook region
 * options
 + Note 1: to change auto fetching email period edit notmuch-sync-period variable
