@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: t; -*-
 ;;; notmuch-lieer-sync.el --- Easy Notmuch - lieer sync Emacs
 
 ;; Copyright (C) 2022 Iason SK
@@ -20,46 +21,70 @@
 
 ;;; Commentary:
 
-;; This file provides a setup configuration for effortless syncing between notmuch and lieer using a simple Elisp function
-;; it nerved me a lot that every time I wanted to fetch new email using lieer I had to leave Emacs (I do not use shell within Emacs) and then run “gmi sync”.  So, I wrote this.
+;; This file provides an asynchronous Elisp setup for syncing notmuch with lieer.
+;; Email sync is triggered directly from Emacs.
+;; The function is not blocking Emacs via simply starting an async process in the background.
+;; The implementation avoids the old shell wrapper approach (863164d25b3e5589c8b76f6fca1f055afcc991f9).
+;; It relies on the standard `notmuch new` philosophy together with the pre-new hook for lieer.
+;; Debug output and errors are now shown.
+;; Ahh... finally done correctly
 
 ;;; Code:
+;; lexical binding
+(require 'subr-x)
 
-;; shell command output no window
-(defun no-output-shell-run (command)
-  "Run shell COMMAND without displaying the output.  First ARG is COMMAND."
-  (interactive (list (read-shell-command "$ ")))
-  (start-process-shell-command command nil command))
+(defvar notmuch-sync--process nil
+  "Current notmuch sync process.")
 
-;; sync notmuch using lieer and notmuch new
-(defun notmuch-sync ()
-  "Syncs notmuch using lieer.  ARG empty: Configuration file is /Users/+++/Mail/gmi-sync.sh."
-  (interactive)
-  (let ((lnr (line-number-at-pos))) ;; register cursor line number
-    (no-output-shell-run "pushd /Users/+++/Mail ; gmi sync ; popd ; notmuch new")
-    (notmuch-refresh-all-buffers) ;; refresh all not much buffers
-    (goto-line lnr) ;; go to registered line number
-    (message "notmuch & lieer on sync")))
+  (defun notmuch-sync ()
+    "Run `notmuch new` from notmuch-serch buffer asynchronously with proper error reporting."
+    (interactive)
+    (when (process-live-p notmuch-sync--process)
+      (user-error "Notmuch sync already running"))
 
-;; (global-set-key (kbd "C-l s") 'notmuch-sync) ;; global
-;; mode-specific, notmuch-search-mode
+    (let* ((lnr (line-number-at-pos))
+           (srcbuf (current-buffer))
+           (outbuf (get-buffer-create "*notmuch-sync*")))
+      (with-current-buffer outbuf
+        (erase-buffer)
+        (insert (format "[%s] starting: notmuch new\n\n"
+                        (format-time-string "%Y-%m-%d %H:%M:%S"))))
+
+      (setq notmuch-sync--process
+            (make-process
+             :name "notmuch-sync"
+             :buffer outbuf
+             :command (list "notmuch" "new")
+             :noquery t
+             :sentinel
+             (let ((outbuf outbuf)
+                   (srcbuf srcbuf)
+                   (lnr lnr))
+               (lambda (proc event)
+                 (when (memq (process-status proc) '(exit signal))
+                   (let ((code (process-exit-status proc)))
+                     (with-current-buffer outbuf
+                       (goto-char (point-max))
+                       (insert (format "\n[%s] finished: %s (exit %d)\n"
+                                       (format-time-string "%Y-%m-%d %H:%M:%S")
+                                       (string-trim event)
+                                       code)))
+                     (setq notmuch-sync--process nil)
+                     (if (eq code 0)
+                         (when (buffer-live-p srcbuf)
+                           (with-current-buffer srcbuf
+                             (notmuch-refresh-this-buffer)
+                             (goto-line lnr)
+                             (message "Notmuch sync OK at %s"
+                                      (format-time-string "%Y-%m-%d %H:%M:%S"))))
+                       (display-buffer outbuf)
+                       (message "Notmuch sync FAILED, see *notmuch-sync*"))))))))))
+
+;; notmuch-sync hook
+;; Sync inside a notmuch-search buffer via "." key
 (add-hook 'notmuch-search-mode-hook
           '(lambda ()
              (define-key notmuch-search-mode-map (kbd ".") 'notmuch-sync)))
-;; mode specific notmuch-hello-mode
-;; fetch email every X sec | period is defined in notmuch-sync-period
-(add-hook 'notmuch-hello-mode-hook
-          '(lambda ()
-             (run-with-timer 0 notmuch-sync-period  ;; every 25 sec fetch email
-                             '(lambda ()
-                                (if
-                                    (get-buffer "*notmuch-hello*")  ;; if notmuch buffer exists fetch email
-                                    (no-output-shell-run "pushd /Users/+++/Mail && gmi sync && popd && notmuch new")
-                                  (cancel-function-timers "no-output-shell-run"))))))  ;; cancel timer if buffer does not exist
-
-;; add this to your init to define fetching period
-;; (setq notmuch-sync-period 25) ;; every 25 sec
-
 
 (provide 'notmuch-sync)
 ;;; notmuch-sync.el ends here

@@ -1,69 +1,59 @@
 #+TITLE: Easy Notmuch - lieer sync emacs
 
-This repository provides a setup configuration for effortless syncing between notmuch and lieer using a simple elisp function (old version uses + script)
+This repository provides the notmuch-sync function for effortless syncing between notmuch and [[https://github.com/gauteh/lieer][lieer]] (GMail)
 
-It nerved me a lot that every time I wanted to fetch new email using lieer I had to leave emacs (I do not use shell within emacs) and then run "gmi sync".  So, I wrote this.
+It nerved me a lot that every time I wanted to fetch new email using lieer I had to leave emacs (I do not use shell within emacs) and then run "gmi sync" then start up a notmuch-search buffer.  So, I wrote this.
 
-*  Elisp function
-1. just fix the path so that points at your "mail" dir in your setup.  Then, place the notmuch-sync.el file / or just copy the code in your emacs config (i.e. init file, or whatever your setup is).
-   #+BEGIN_SRC
-  "Syncs notmuch using lieer.  ARG empty: Configuration file is /Users/+++/Mail/gmi-sync.sh."
-...
-    (no-output-shell-run "pushd /Users/+++/Mail ; gmi sync ; popd ; notmuch new")
-...
-;; and in the add-hook
-...
-(no-output-shell-run "pushd /Users/+++/Mail && gmi sync && popd && notmuch new")
-...
+* Elisp function (async)
 
+Fix paths if needed and place the code in your Emacs config (init file or separate notmuch-sync.el)
+
+This more optimised version runs notmuch new asynchronously. Emacs does not freeze often like before or when the email database is huge.
+
+Ahh... finally done correctly
+
+#+BEGIN_SRC emacs-lisp
+(notmuch-sync)
 #+END_SRC
-2. Set the period variable (e.g. in your init)
-   #+BEGIN_SRC
-(setq notmuch-sync-period 25) ;; fetch every 25 sec
-#+END_SRC
-3. You can sync by using "." (full stop) when you are in search-mode i.e. "inbox".  It does not work with the notmuch-hello buffer.  However, in my configuration it is bound to "C-l s" so that I can sync without having to or be in the notmuch buffer.  You can easily do that by un-commenting
-   #+BEGIN_SRC
-;;   (global-set-key (kbd "C-l s") 'notmuch-sync)
-   #+END_SRC
-4. I used a hook to automatically fetch email every 25 sec
-   1. To change the time period, edit notmuch-sync-period variable
-   2. To disable comment out the add-hook region
-* options
-+ Note 1: to change auto fetching email period edit notmuch-sync-period variable
-+ Note 2: If you like you can enable output in new window by commenting out
+
+1. notmuch new is executed directly
+
+2. The pre-new hook handles lieer / gmi sync.
+   example:
+   #+begin_src shell
+     #!/usr/bin/zsh
+
+     # Two threaded fetching
+     (cd ~/.mail/gamo-tin-trela-mou.gmail/   && gmi sync) &
+     (cd ~/.mail/gamo-tin-trela-mou-2.gmail/ && gmi sync) &
+
+     wait
+   #+end_src
+
+3. Output is written to *notmuch-sync*
+
+Manual sync:
+
+M-x notmuch-sync
+
+* Behaviour
+
+- If a sync is already running --> it aborts with an error
+
+- On success --> the current notmuch buffer is refreshed and cursor position is preserved
+
+- On failure --> *notmuch-sync* is shown with full stderr output
+
+* Notes
+
+- Fully asynchronous --> Emacs does not freeze
+
+- Debug output shown
+
+- Requires executable pre-new hook
+
+Recommended to enable lexical binding:
+
 #+BEGIN_SRC
-(no-output-shell-run "bash /Users/+++/Mail/gmi-sync.sh /Users/+++/Mail")
+;;; -- lexical-binding: t; --
 #+END_SRC
-and using this instead
-#+BEGIN_SRC
-;;(shell-command "bash /Users/+++/Mail/gmi-sync.sh") ;; new window output
-#+END_SRC
-* COMMENT old version: using a shell script
-1. First, place the /gmi_sync.sh/ script in the "mail" dir that you use.  In my case that would be "~/Mail".
-2. In the following function, set the correct path for the script and mail config path according to your setup. Then place  the elisp code it in your emacs configuration (I use emacs prelude so that would be somewhere inside "~/.emacs.d./personal").  More about prelude here https://prelude.emacsredux.com/en/latest/.  /If you are not copy-pasting and using the .el file in the repo make sure that you un-comment the "sync notmuch using lieer and notmuch new -- old version using a script" block and comment out the newer version./
-   #+BEGIN_SRC
-;; shell command output no window
-(defun no-output-shell-run (command)
-  "Run shell COMMAND without displaying the output.  First ARG is COMMAND."
-  (interactive (list (read-shell-command "$ ")))
-  (start-process-shell-command command nil command))
-;; sync notmuch using lieer and notmuch new
-(defun notmuch-sync ()
-  "Syncs notmuch using lieer.  ARG empty: Configuration file is /Users/+++/Mail/gmi-sync.sh."
-  (interactive)
-  (let ((lnr (line-number-at-pos))) ;; register cursor line number
-    (no-output-shell-run "bash /Users/+++/Mail/gmi-sync.sh /Users/+++/Mail")
-    ;;(shell-command "bash /Users/+++/Mail/gmi-sync.sh") ;; new window output
-    (notmuch-refresh-all-buffers) ;; refresh all not much buffers
-    (goto-line lnr))) ;; go to registered line number
-
-;; (global-set-key (kbd "C-l s") 'notmuch-sync) ;; global
-;; mode-specific, notmuch-search-mode
-(add-hook 'notmuch-search-mode-hook
-          '(lambda ()
-             (define-key notmuch-search-mode-map (kbd ".") 'notmuch-sync)))
-   #+END_SRC
-3. You can sync by using "." (full stop) when you are in search-mode i.e. "inbox".  It does not work with the notmuch-hello buffer.  However, in my configuration it is bound to "C-l s" so that I can sync without having to or be in the notmuch buffer.  You can easily do that by un-commenting
-   #+BEGIN_SRC
-   (global-set-key (kbd "C-l s") 'notmuch-sync)
-   #+END_SRC
