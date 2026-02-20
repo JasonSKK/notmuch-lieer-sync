@@ -1,4 +1,3 @@
-;;; -*- lexical-binding: t; -*-
 ;;; notmuch-lieer-sync.el --- Easy Notmuch - lieer sync Emacs
 
 ;; Copyright (C) 2022 Iason SK
@@ -30,61 +29,53 @@
 ;; Ahh... finally done correctly
 
 ;;; Code:
-;; lexical binding
 (require 'subr-x)
 
 (defvar notmuch-sync--process nil
   "Current notmuch sync process.")
 
-  (defun notmuch-sync ()
-    "Run `notmuch new` from notmuch-serch buffer asynchronously with proper error reporting."
-    (interactive)
-    (when (process-live-p notmuch-sync--process)
-      (user-error "Notmuch sync already running"))
+(defun notmuch-sync ()
+  "Run `notmuch new` asynchronously and log to *notmuch-sync*."
+  (interactive)
+  (when (process-live-p notmuch-sync--process)
+    (user-error "Notmuch sync already running"))
 
-    (let* ((lnr (line-number-at-pos))
-           (srcbuf (current-buffer))
-           (outbuf (get-buffer-create "*notmuch-sync*")))
-      (with-current-buffer outbuf
-        (erase-buffer)
-        (insert (format "[%s] starting: notmuch new\n\n"
-                        (format-time-string "%Y-%m-%d %H:%M:%S"))))
+  (let ((outbuf (get-buffer-create "*notmuch-sync*")))
+    (with-current-buffer outbuf
+      (erase-buffer)
+      (insert (format "[%s] starting: notmuch new\n\n"
+                      (format-time-string "%Y-%m-%d %H:%M:%S"))))
 
-      (setq notmuch-sync--process
-            (make-process
-             :name "notmuch-sync"
-             :buffer outbuf
-             :command (list "notmuch" "new")
-             :noquery t
-             :sentinel
-             (let ((outbuf outbuf)
-                   (srcbuf srcbuf)
-                   (lnr lnr))
-               (lambda (proc event)
-                 (when (memq (process-status proc) '(exit signal))
-                   (let ((code (process-exit-status proc)))
-                     (with-current-buffer outbuf
-                       (goto-char (point-max))
-                       (insert (format "\n[%s] finished: %s (exit %d)\n"
-                                       (format-time-string "%Y-%m-%d %H:%M:%S")
-                                       (string-trim event)
-                                       code)))
-                     (setq notmuch-sync--process nil)
-                     (if (eq code 0)
-                         (when (buffer-live-p srcbuf)
-                           (with-current-buffer srcbuf
-                             (notmuch-refresh-this-buffer)
-                             (goto-line lnr)
-                             (message "Notmuch sync OK at %s"
-                                      (format-time-string "%Y-%m-%d %H:%M:%S"))))
-                       (display-buffer outbuf)
-                       (message "Notmuch sync FAILED, see *notmuch-sync*"))))))))))
+    (setq notmuch-sync--process
+          (make-process
+           :name "notmuch-sync"
+           :buffer outbuf
+           :command (list "notmuch" "new")
+           :noquery t
+           :sentinel
+           (lambda (proc event)
+             (when (memq (process-status proc) '(exit signal))
+               (let* ((code (process-exit-status proc))
+                      (buf (process-buffer proc)))
+                 (setq notmuch-sync--process nil)
+                 (when (buffer-live-p buf)
+                   (with-current-buffer buf
+                     (goto-char (point-max))
+                     (insert (format "\n[%s] finished: %s (exit %d)\n"
+                                     (format-time-string "%Y-%m-%d %H:%M:%S")
+                                     (string-trim event)
+                                     code))))
+                 (if (eq code 0)
+                     (message "Notmuch sync OK")
+                   (when (buffer-live-p buf)
+                     (display-buffer buf))
+                   (message "Notmuch sync FAILED, see *notmuch-sync*")))))))))
 
-;; notmuch-sync hook
-;; Sync inside a notmuch-search buffer via "." key
-(add-hook 'notmuch-search-mode-hook
-          '(lambda ()
-             (define-key notmuch-search-mode-map (kbd ".") 'notmuch-sync)))
+  ;; notmuch-sync hook
+  ;; Sync inside a notmuch-search buffer via "." key
+  (add-hook 'notmuch-search-mode-hook
+            '(lambda ()
+               (define-key notmuch-search-mode-map (kbd ".") 'notmuch-sync)))
 
-(provide 'notmuch-sync)
+  (provide 'notmuch-sync)
 ;;; notmuch-sync.el ends here
