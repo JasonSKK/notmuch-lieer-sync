@@ -58,6 +58,7 @@
                (let* ((code (process-exit-status proc))
                       (buf (process-buffer proc)))
                  (setq notmuch-sync--process nil)
+                 (notmuch-refresh-this-buffer)
                  (when (buffer-live-p buf)
                    (with-current-buffer buf
                      (goto-char (point-max))
