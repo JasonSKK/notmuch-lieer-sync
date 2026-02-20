@@ -51,9 +51,3 @@ M-x notmuch-sync
 - Debug output shown
 
 - Requires executable pre-new hook
-
-Recommended to enable lexical binding:
-
-#+BEGIN_SRC
-;;; -- lexical-binding: t; --
-#+END_SRC
